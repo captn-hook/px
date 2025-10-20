@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component)]
 pub enum Direction8 {
@@ -21,24 +20,9 @@ impl Direction8 {
             South, Southwest, West, Northwest,
         ]
     }
-
-    pub fn key_bindings() -> HashMap<Direction8, KeyCode> {
-        use Direction8::*;
-        use KeyCode::*;
-        HashMap::from([
-            (North, ArrowUp),
-            (Northeast, KeyW),
-            (East, ArrowRight),
-            (Southeast, KeyD),
-            (South, ArrowDown),
-            (Southwest, KeyS),
-            (West, ArrowLeft),
-            (Northwest, KeyA),
-        ])
-    }
 }
 
-#[derive(Resource)]
+#[derive(Resource)] // change to component
 pub struct CurrentDirection {
     pub direction: Direction8,
 }

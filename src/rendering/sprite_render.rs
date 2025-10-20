@@ -1,13 +1,13 @@
+use crate::direction::{CurrentDirection, Direction8};
+use crate::game::character_state::{CharacterState, CurrentCharacterState};
+use crate::rendering::sprite_state::{CurrentSpriteState, SpriteState};
 use bevy::prelude::*;
 use std::path::Path;
-use crate::direction::{Direction8, CurrentDirection};
-use crate::sprite_state::{SpriteState, CurrentSpriteState};
 
 #[derive(Component, Clone)]
 pub struct AnimationConfig {
     pub first_sprite_index: usize,
     pub last_sprite_index: usize,
-    pub fps: u8,
     pub frame_timer: Timer,
 }
 
@@ -16,13 +16,8 @@ impl AnimationConfig {
         Self {
             first_sprite_index: first,
             last_sprite_index: last,
-            fps,
-            frame_timer: Self::timer_from_fps(fps),
+            frame_timer: Timer::from_seconds(1.0 / fps as f32, TimerMode::Repeating)
         }
-    }
-
-    pub fn timer_from_fps(fps: u8) -> Timer {
-        Timer::new(std::time::Duration::from_secs_f32(1.0 / fps as f32), TimerMode::Once)
     }
 }
 
@@ -34,23 +29,136 @@ pub struct ImageAtlasBundle {
     pub state: SpriteState,
 }
 
+// ---------------------------------------------------------------------------
+// State + Direction Driven Animation
+// ---------------------------------------------------------------------------
+pub fn execute_animations(
+    time: Res<Time>,
+    mut current_sprite_state: ResMut<CurrentSpriteState>,
+    current_character_state: Res<CurrentCharacterState>,
+    current_dir: Res<CurrentDirection>,
+    mut query: Query<(&Direction8, &SpriteState, &mut AnimationConfig, &mut Sprite)>,
+) {
+    // Track if the currently playing animation has finished its loop
+    let mut loop_completed = false;
+
+    for (dir, state, mut anim, mut sprite) in &mut query {
+        if *dir != current_dir.direction || *state != current_sprite_state.state {
+            continue; // skip non-visible animations
+        }
+
+        anim.frame_timer.tick(time.delta());
+
+        if anim.frame_timer.finished() {
+            if let Some(atlas) = &mut sprite.texture_atlas {
+                if atlas.index < anim.last_sprite_index {
+                    atlas.index += 1;
+                } else {
+                    // Last frame reached
+                    atlas.index = anim.first_sprite_index;
+                    loop_completed = true; // full loop completed
+                }
+            }
+
+            anim.frame_timer.reset();
+        }
+    }
+
+    // Only change sprite state if the **full animation loop has completed**
+    let is_still_interruptible = current_sprite_state.state == SpriteState::Still;
+
+    if loop_completed || is_still_interruptible {
+        let next_state = match (current_character_state.state, current_sprite_state.state) {
+            (CharacterState::Moving, SpriteState::Still | SpriteState::Stopping) => SpriteState::Starting,
+            (CharacterState::Moving, SpriteState::Starting | SpriteState::Moving) => SpriteState::Moving,
+            (CharacterState::Still, SpriteState::Starting | SpriteState::Moving) => SpriteState::Stopping,
+            (CharacterState::Still, SpriteState::Stopping | SpriteState::Still) => SpriteState::Still,
+        };
+
+        if next_state != current_sprite_state.state {
+            current_sprite_state.state = next_state;
+
+            // Reset the animation for the new state
+            for (dir, state, mut anim, _) in &mut query {
+                if *dir == current_dir.direction && *state == next_state {
+                    anim.frame_timer.reset();
+                }
+            }
+        }
+    }
+}
+
+
+// ---------------------------------------------------------------------------
+// Visibility Update
+// ---------------------------------------------------------------------------
+
+pub fn update_visibility(
+    current_dir: Res<CurrentDirection>,
+    current_state: Res<CurrentSpriteState>,
+    mut query: Query<(&Direction8, &SpriteState, &mut Visibility)>,
+) {
+    for (sprite_dir, sprite_state, mut visibility) in &mut query {
+        *visibility =
+            if *sprite_dir == current_dir.direction && *sprite_state == current_state.state {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            };
+    }
+}
+
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2d::default());
 
-    // Load all combinations of direction + state
     for direction in Direction8::all() {
         for state in SpriteState::all() {
-            let filename = format!("textures/{:?}_{:?}_3x7.png", direction, state).to_lowercase();
+            let base = format!("textures/test_char/{:?}_{:?}", direction, state).to_lowercase();
+
+            let filename = find_existing_texture(&base).unwrap_or_else(|| format!("{}.png", base));
+
+            let (columns, rows) = parse_grid_from_filename(&filename).unwrap_or((1, 1));
+
             let image_handle = asset_server.load(&filename);
 
             commands.spawn(ImageAtlasBundle {
                 image_handle,
-                path: filename,
+                path: filename.clone(),
                 direction: *direction,
                 state: *state,
             });
+
+            info!(
+                "Loaded {:?} {:?} with grid {}x{}",
+                direction, state, columns, rows
+            );
         }
     }
+}
+
+/// Checks if either "base.png" or "base_NxM.png" exists.
+/// Returns the first one that exists.
+fn find_existing_texture(base: &str) -> Option<String> {
+    let texture_dir = Path::new("assets");
+
+    // check for "base.png"
+    let plain_path = texture_dir.join(format!("{}.png", base));
+    if plain_path.exists() {
+        return Some(format!("{}.png", base));
+    }
+
+    // check for any "_NxM.png"
+    if let Ok(entries) = std::fs::read_dir(texture_dir.join("textures/test_char")) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                if name.starts_with(&base["textures/test_char/".len()..]) && name.ends_with(".png") {
+                    return Some(format!("textures/test_char/{}", name));
+                }
+            }
+        }
+    }
+    None
 }
 
 pub fn process_atlases(
@@ -66,9 +174,11 @@ pub fn process_atlases(
                 let layout = TextureAtlasLayout::from_grid(sprite_size, cols, rows, None, None);
                 let layout_handle = texture_atlas_layouts.add(layout);
                 let total_frames = (cols * rows) as usize;
+
                 let animation = AnimationConfig::new(0, total_frames - 1, 12);
 
-                commands.entity(entity)
+                commands
+                    .entity(entity)
                     .insert((
                         Sprite {
                             image: bundle.image_handle.clone(),
@@ -78,7 +188,7 @@ pub fn process_atlases(
                             }),
                             ..default()
                         },
-                        Visibility::Hidden, // start hidden until selected
+                        Visibility::Hidden, // start hidden; system will toggle visible ones
                         Transform::from_scale(Vec3::splat(1.0)),
                         animation,
                         bundle.direction,
@@ -87,39 +197,6 @@ pub fn process_atlases(
                     .remove::<ImageAtlasBundle>();
             }
         }
-    }
-}
-
-pub fn execute_animations(
-    time: Res<Time>,
-    mut query: Query<(&mut AnimationConfig, &mut Sprite)>,
-) {
-    for (mut config, mut sprite) in &mut query {
-        config.frame_timer.tick(time.delta());
-        if config.frame_timer.just_finished() {
-            if let Some(atlas) = &mut sprite.texture_atlas {
-                if atlas.index == config.last_sprite_index {
-                    atlas.index = config.first_sprite_index;
-                } else {
-                    atlas.index += 1;
-                    config.frame_timer = AnimationConfig::timer_from_fps(config.fps);
-                }
-            }
-        }
-    }
-}
-
-pub fn update_visibility(
-    current_dir: Res<CurrentDirection>,
-    current_state: Res<CurrentSpriteState>,
-    mut query: Query<(&Direction8, &SpriteState, &mut Visibility)>,
-) {
-    for (sprite_dir, sprite_state, mut visibility) in &mut query {
-        *visibility = if *sprite_dir == current_dir.direction && *sprite_state == current_state.state {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
-        };
     }
 }
 
