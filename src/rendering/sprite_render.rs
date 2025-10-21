@@ -140,7 +140,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2d::default());
 
     for direction in all::<Direction8>() {
-        for state in SpriteState::all() {
+        for state in all::<SpriteState>() {
             let base = format!("textures/test_char/{:?}_{:?}", direction, state).to_lowercase();
 
             let filename = find_existing_texture(&base).unwrap_or_else(|| format!("{}.png", base));
@@ -153,7 +153,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 image_handle,
                 path: filename.clone(),
                 direction: direction,
-                state: *state,
+                state: state,
             });
 
             info!(
