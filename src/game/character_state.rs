@@ -6,18 +6,9 @@ pub enum CharacterState {
     Moving,
 }
 
-#[derive(Component)]
-pub struct CurrentCharacterState {
-    pub state: CharacterState,
-}
-
-impl CurrentCharacterState {
-}
-
-impl Default for CurrentCharacterState {
-    fn default() -> Self {
-        Self {
-            state: CharacterState::Still,
-        }
+impl CharacterState {
+    pub fn all() -> &'static [CharacterState] {
+        use CharacterState::*;
+        &[Still, Moving]
     }
 }

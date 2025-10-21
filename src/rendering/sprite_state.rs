@@ -14,7 +14,3 @@ impl SpriteState {
         &[Still, Starting, Moving, Stopping]
     }
 }
-
-// Marker component for the Player entity
-#[derive(Component)]
-pub struct Player;

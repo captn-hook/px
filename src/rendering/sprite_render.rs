@@ -1,6 +1,6 @@
 use crate::direction::Direction8;
-use crate::game::character_state::{CharacterState, CurrentCharacterState};
-use crate::rendering::sprite_state::{Player, SpriteState};
+use crate::game::character_state::CharacterState;
+use crate::rendering::sprite_state::SpriteState;
 use bevy::prelude::*;
 use std::path::Path;
 
@@ -34,9 +34,7 @@ pub struct ImageAtlasBundle {
 // ---------------------------------------------------------------------------
 pub fn execute_animations(
     time: Res<Time>,
-    // read and possibly mutate the player's sprite state
-    mut player_query: Query<(&Direction8, &mut SpriteState, &CurrentCharacterState), With<Player>>,
-    mut query: Query<(&Direction8, &SpriteState, &mut AnimationConfig, &mut Sprite), Without<Player>>,
+    mut query: // TODO
 ) {
     // Track if the currently playing animation has finished its loop
     let mut loop_completed = false;

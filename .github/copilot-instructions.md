@@ -1,12 +1,15 @@
 
 ## Quick orientation for AI coding agents
 
-This is a small Bevy-based 2D sprite demo / infra for state+direction driven animations.
+This is a small Bevy-based 2D sprite based game. The game is still in early development.
+It uses classic 2D sprite sheets for character animations. It uses an 8 directional isometric style. This means each character has 8 directions × multiple states, each with its own sprite sheet.
 Keep instructions short and actionable: follow existing patterns in `src/` and asset layout under `assets/`.
 
 Current project status
 - Very early prototype: there is currently only one character's worth of sprite sheets under `assets/textures/test_char/`.
 - Sprites cover all 8 cardinal directions and a few character states/transitions. New characters should follow the same per-direction, per-state atlas layout.
+- CharacterState is the gameplay related state machine for the character.
+- SpriteState is the visual representation of the character's current state, but may be out of sync with the gameplay state machine as it transitions between states.
 
 Key files to read first
 - `src/main.rs` — app construction (plugins, resources, startup/update systems).
