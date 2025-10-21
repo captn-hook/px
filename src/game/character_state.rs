@@ -1,6 +1,7 @@
 use bevy::prelude::*;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component)]
+use enum_iterator::Sequence;
+    
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component, Sequence)]
 pub enum CharacterState {
     Still,
     Moving,
