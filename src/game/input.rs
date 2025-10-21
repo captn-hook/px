@@ -27,10 +27,11 @@ fn update_player_input_keyboard(
 ) {
     use KeyCode::*;
 
-    input.up = keyboard.pressed(ArrowUp);
-    input.down = keyboard.pressed(ArrowDown);
-    input.left = keyboard.pressed(ArrowLeft);
-    input.right = keyboard.pressed(ArrowRight);
+    // movement is true if either arrow keys OR WASD are pressed
+    input.up = keyboard.pressed(ArrowUp) || keyboard.pressed(KeyCode::KeyW);
+    input.down = keyboard.pressed(ArrowDown) || keyboard.pressed(KeyCode::KeyS);
+    input.left = keyboard.pressed(ArrowLeft) || keyboard.pressed(KeyCode::KeyA);
+    input.right = keyboard.pressed(ArrowRight) || keyboard.pressed(KeyCode::KeyD);
 
     // button mappings (change as needed)
     input.action1 = keyboard.pressed(Space);
