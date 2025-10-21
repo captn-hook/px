@@ -10,7 +10,7 @@ use rendering::sprite_render::{setup, process_atlases, execute_animations, updat
 use game::player_input::{PlayerControl, PlayerInput, update_player_input};
 use game::character_input::{RandomInput, update_random_input};
 
-use spawn::spawn_character;
+use spawn::spawn_characters;
 
 fn main() {
     let mut app = App::new();
@@ -19,29 +19,7 @@ fn main() {
         .insert_resource(PlayerInput::default()) // global keyboard + mouse input
         .insert_resource(SpriteLibrary::default()) // global sprite library
         .add_systems(Startup, setup)
-        .add_systems(
-            Startup,
-            (
-                // spawn a player-controlled character at Y
-                |mut commands: Commands| {
-                    spawn_character(
-                        commands,
-                        Vec3::Y,
-                        SpriteSet::new("default"),
-                        PlayerControl::default(),
-                    )
-                },
-                // spawn a random-controlled character at X
-                |mut commands: Commands| {
-                    spawn_character(
-                        commands,
-                        Vec3::X,
-                        SpriteSet::new("default"),
-                        RandomInput::default(),
-                    )
-                },
-            ),
-        )
+        .add_systems(Startup, spawn_characters)
         .add_systems(Update, (update_player_input, update_random_input))
         .add_systems(Update, (process_atlases, execute_animations, update_visibility));
 
