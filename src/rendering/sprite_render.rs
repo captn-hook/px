@@ -1,5 +1,6 @@
 use crate::direction::Direction8;
 use crate::game::character_state::CharacterState;
+use crate::game::player_input::PlayerControl;
 use crate::rendering::sprite_state::SpriteState;
 use bevy::prelude::*;
 use std::path::Path;
@@ -34,16 +35,21 @@ pub struct ImageAtlasBundle {
 // ---------------------------------------------------------------------------
 pub fn execute_animations(
     time: Res<Time>,
-    mut query: // TODO
+    mut player_query: Query<(&Direction8, &mut SpriteState, &CharacterState), With<PlayerControl>>,
+    mut query: Query<(&Direction8, &SpriteState, &mut AnimationConfig, &mut Sprite), Without<PlayerControl>>,
 ) {
     // Track if the currently playing animation has finished its loop
     let mut loop_completed = false;
 
     // read the player's authoritative components (expect exactly one Player)
-    let Ok((player_dir, mut player_sprite_state, player_char_state)) = player_query.single_mut() else { return };
+    // copy values out so we don't hold a borrow while iterating other query
+    let Ok((p_dir_ref, p_sprite_state_ref, p_char_state_ref)) = player_query.single() else { return };
+    let player_dir = *p_dir_ref;
+    let player_sprite_state = *p_sprite_state_ref;
+    let player_char_state = *p_char_state_ref;
 
-    for (dir, state, mut anim, mut sprite) in &mut query {
-        if *dir != *player_dir || *state != *player_sprite_state {
+    for (dir, state, mut anim, mut sprite) in query.iter_mut() {
+        if *dir != player_dir || *state != player_sprite_state {
             continue; // skip non-visible animations
         }
 
@@ -65,22 +71,24 @@ pub fn execute_animations(
     }
 
     // Only change sprite state if the **full animation loop has completed**
-    let is_still_interruptible = *player_sprite_state == SpriteState::Still;
+    let is_still_interruptible = player_sprite_state == SpriteState::Still;
 
     if loop_completed || is_still_interruptible {
-        let next_state = match (player_char_state.state, *player_sprite_state) {
+        let next_state = match (player_char_state, player_sprite_state) {
             (CharacterState::Moving, SpriteState::Still | SpriteState::Stopping) => SpriteState::Starting,
             (CharacterState::Moving, SpriteState::Starting | SpriteState::Moving) => SpriteState::Moving,
             (CharacterState::Still, SpriteState::Starting | SpriteState::Moving) => SpriteState::Stopping,
             (CharacterState::Still, SpriteState::Stopping | SpriteState::Still) => SpriteState::Still,
         };
-
-        if next_state != *player_sprite_state {
-            *player_sprite_state = next_state;
+        if next_state != player_sprite_state {
+            // acquire mutable access to the player's SpriteState now that we're done iterating
+            if let Ok((_, mut player_sprite_state_mut, _)) = player_query.single_mut() {
+                *player_sprite_state_mut = next_state;
+            }
 
             // Reset the animation for the new state
-            for (dir, state, mut anim, _) in &mut query {
-                if *dir == *player_dir && *state == next_state {
+            for (dir, state, mut anim, _) in query.iter_mut() {
+                if *dir == player_dir && *state == next_state {
                     anim.frame_timer.reset();
                 }
             }
@@ -93,8 +101,8 @@ pub fn execute_animations(
 // ---------------------------------------------------------------------------
 
 pub fn update_visibility(
-    player_query: Query<(&Direction8, &SpriteState), With<Player>>,
-    mut query: Query<(&Direction8, &SpriteState, &mut Visibility), Without<Player>>,
+    player_query: Query<(&Direction8, &SpriteState), With<PlayerControl>>,
+    mut query: Query<(&Direction8, &SpriteState, &mut Visibility), Without<PlayerControl>>,
 ) {
     let Ok((player_dir, player_state)) = player_query.single() else { return };
 

@@ -2,11 +2,7 @@ use bevy::prelude::*;
 use crate::direction::Direction8;
 use crate::rendering::sprite_state::SpriteState;
 use crate::game::character_state::CharacterState;
-use rendering::sprite_set::SpriteSet;
-
-// Example extra component
-#[derive(Component)]
-pub struct Player;
+use crate::rendering::sprite_set::SpriteSet;
 
 #[derive(Bundle)]
 pub struct CharacterBundle {
@@ -31,6 +27,6 @@ pub fn spawn_character<C: Bundle>(
             sprite_set: sprite_set,
             transform: Transform::from_translation(position),
         },
-        extra, // any extra components here
+        extra,
     ));
 }

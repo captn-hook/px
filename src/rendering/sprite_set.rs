@@ -13,9 +13,10 @@ pub struct SpriteLibrary {
 ///
 /// Internally this stores a map from a string key (for example
 /// "north_idle" or "south_walk") to a `Handle<TextureAtlas>`. Handles are
-/// cheap to clone so `SpriteSet` can be shared across many entities. The
+/// cheap to clone so `SpriteSet` can be shared a1cross many entities. The
 /// library owns the map and systems create components that reference the
 /// handles they need.
+#[derive(Component)]
 pub struct SpriteSet {
     /// Human-friendly name for this set (used as the key in `SpriteLibrary`).
     pub name: String,

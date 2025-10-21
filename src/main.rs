@@ -27,7 +27,7 @@ fn main() {
                     spawn_character(
                         commands,
                         Vec3::Y,
-                        SpriteSet::Default,
+                        SpriteSet::new("default"),
                         PlayerControl::default(),
                     )
                 },
@@ -36,7 +36,7 @@ fn main() {
                     spawn_character(
                         commands,
                         Vec3::X,
-                        SpriteSet::Default,
+                        SpriteSet::new("default"),
                         RandomInput::default(),
                     )
                 },
