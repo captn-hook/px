@@ -11,11 +11,12 @@ use enum_iterator::all;
 pub fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera2d::default());
 }
+
 pub fn render_sprites(
-    windows: Query<&Window>,
+    windows: Query<&Window>, // for sizing
     sprite_library: Res<SpriteLibrary>
 ) {
-
+    // TODO: This function should be responsible for rendering all sprites on the screen.
 }
 
 pub fn load_sprite(name: &str) -> HashMap<String, Sprite> {
