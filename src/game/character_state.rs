@@ -6,15 +6,12 @@ pub enum CharacterState {
     Moving,
 }
 
-#[derive(Resource)]
+#[derive(Component)]
 pub struct CurrentCharacterState {
     pub state: CharacterState,
 }
 
 impl CurrentCharacterState {
-    pub fn new(state: CharacterState) -> Self {
-        Self { state }
-    }
 }
 
 impl Default for CurrentCharacterState {

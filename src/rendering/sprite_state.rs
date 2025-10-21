@@ -15,21 +15,6 @@ impl SpriteState {
     }
 }
 
-#[derive(Resource)]
-pub struct CurrentSpriteState {
-    pub state: SpriteState,
-}
-
-impl CurrentSpriteState {
-    pub fn new(state: SpriteState) -> Self {
-        Self { state }
-    }
-}
-
-impl Default for CurrentSpriteState {
-    fn default() -> Self {
-        Self {
-            state: SpriteState::Still,
-        }
-    }
-}
+// Marker component for the Player entity
+#[derive(Component)]
+pub struct Player;

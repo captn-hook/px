@@ -1,6 +1,6 @@
-use crate::direction::{CurrentDirection, Direction8};
+use crate::direction::Direction8;
 use crate::game::character_state::{CharacterState, CurrentCharacterState};
-use crate::rendering::sprite_state::{CurrentSpriteState, SpriteState};
+use crate::rendering::sprite_state::{Player, SpriteState};
 use bevy::prelude::*;
 use std::path::Path;
 
@@ -16,7 +16,7 @@ impl AnimationConfig {
         Self {
             first_sprite_index: first,
             last_sprite_index: last,
-            frame_timer: Timer::from_seconds(1.0 / fps as f32, TimerMode::Repeating)
+            frame_timer: Timer::from_seconds(1.0 / fps as f32, TimerMode::Repeating),
         }
     }
 }
@@ -34,16 +34,18 @@ pub struct ImageAtlasBundle {
 // ---------------------------------------------------------------------------
 pub fn execute_animations(
     time: Res<Time>,
-    mut current_sprite_state: ResMut<CurrentSpriteState>,
-    current_character_state: Res<CurrentCharacterState>,
-    current_dir: Res<CurrentDirection>,
-    mut query: Query<(&Direction8, &SpriteState, &mut AnimationConfig, &mut Sprite)>,
+    // read and possibly mutate the player's sprite state
+    mut player_query: Query<(&Direction8, &mut SpriteState, &CurrentCharacterState), With<Player>>,
+    mut query: Query<(&Direction8, &SpriteState, &mut AnimationConfig, &mut Sprite), Without<Player>>,
 ) {
     // Track if the currently playing animation has finished its loop
     let mut loop_completed = false;
 
+    // read the player's authoritative components (expect exactly one Player)
+    let Ok((player_dir, mut player_sprite_state, player_char_state)) = player_query.single_mut() else { return };
+
     for (dir, state, mut anim, mut sprite) in &mut query {
-        if *dir != current_dir.direction || *state != current_sprite_state.state {
+        if *dir != *player_dir || *state != *player_sprite_state {
             continue; // skip non-visible animations
         }
 
@@ -65,22 +67,22 @@ pub fn execute_animations(
     }
 
     // Only change sprite state if the **full animation loop has completed**
-    let is_still_interruptible = current_sprite_state.state == SpriteState::Still;
+    let is_still_interruptible = *player_sprite_state == SpriteState::Still;
 
     if loop_completed || is_still_interruptible {
-        let next_state = match (current_character_state.state, current_sprite_state.state) {
+        let next_state = match (player_char_state.state, *player_sprite_state) {
             (CharacterState::Moving, SpriteState::Still | SpriteState::Stopping) => SpriteState::Starting,
             (CharacterState::Moving, SpriteState::Starting | SpriteState::Moving) => SpriteState::Moving,
             (CharacterState::Still, SpriteState::Starting | SpriteState::Moving) => SpriteState::Stopping,
             (CharacterState::Still, SpriteState::Stopping | SpriteState::Still) => SpriteState::Still,
         };
 
-        if next_state != current_sprite_state.state {
-            current_sprite_state.state = next_state;
+        if next_state != *player_sprite_state {
+            *player_sprite_state = next_state;
 
             // Reset the animation for the new state
             for (dir, state, mut anim, _) in &mut query {
-                if *dir == current_dir.direction && *state == next_state {
+                if *dir == *player_dir && *state == next_state {
                     anim.frame_timer.reset();
                 }
             }
@@ -88,19 +90,19 @@ pub fn execute_animations(
     }
 }
 
-
 // ---------------------------------------------------------------------------
 // Visibility Update
 // ---------------------------------------------------------------------------
 
 pub fn update_visibility(
-    current_dir: Res<CurrentDirection>,
-    current_state: Res<CurrentSpriteState>,
-    mut query: Query<(&Direction8, &SpriteState, &mut Visibility)>,
+    player_query: Query<(&Direction8, &SpriteState), With<Player>>,
+    mut query: Query<(&Direction8, &SpriteState, &mut Visibility), Without<Player>>,
 ) {
+    let Ok((player_dir, player_state)) = player_query.single() else { return };
+
     for (sprite_dir, sprite_state, mut visibility) in &mut query {
         *visibility =
-            if *sprite_dir == current_dir.direction && *sprite_state == current_state.state {
+            if *sprite_dir == *player_dir && *sprite_state == *player_state {
                 Visibility::Visible
             } else {
                 Visibility::Hidden

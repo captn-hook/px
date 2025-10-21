@@ -22,13 +22,3 @@ impl Direction8 {
     }
 }
 
-#[derive(Resource)] // change to component
-pub struct CurrentDirection {
-    pub direction: Direction8,
-}
-
-impl CurrentDirection {
-    pub fn new(direction: Direction8) -> Self {
-        Self { direction }
-    }
-}
