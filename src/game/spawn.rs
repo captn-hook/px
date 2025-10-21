@@ -9,7 +9,6 @@ pub fn spawn_player(mut commands: Commands) {
 		Direction8::South,
 		SpriteState::Still,
 		CurrentCharacterState::default(),
-		Transform::default(),
-		GlobalTransform::default(),
+		Transform::from_xyz(300.0, 0.0, 0.0),
 	));
 }
