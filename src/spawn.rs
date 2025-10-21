@@ -1,8 +1,8 @@
 use crate::direction::Direction8;
 use crate::game::character_input::RandomInput;
-use crate::game::player_input::PlayerControl;
 use crate::game::character_state::CharacterState;
-use crate::rendering::sprite_set::SpriteSet;
+use crate::game::player_input::PlayerControl;
+use crate::rendering::sprite_set::{SpriteLibrary, SpriteSet};
 use crate::rendering::sprite_state::SpriteState;
 use bevy::prelude::*;
 
@@ -15,23 +15,26 @@ pub struct CharacterBundle {
     pub transform: Transform,
 }
 
-pub fn spawn_characters(mut commands: Commands) {
+pub fn spawn_player(mut commands: Commands, sprite_library: ResMut<SpriteLibrary>) {
     commands.spawn((
         CharacterBundle {
             direction: Direction8::South,
             sprite_state: SpriteState::Still,
             character_state: CharacterState::Still,
-            sprite_set: SpriteSet::new("test_char"),
+            sprite_set: SpriteSet::get(sprite_library, "test_char"),
             transform: Transform::from_translation(Vec3::Y * 2.0),
         },
         PlayerControl::default(),
     ));
+}
+
+pub fn spawn_character(mut commands: Commands, sprite_library: ResMut<SpriteLibrary>) {
     commands.spawn((
         CharacterBundle {
             direction: Direction8::South,
             sprite_state: SpriteState::Still,
             character_state: CharacterState::Still,
-            sprite_set: SpriteSet::new("test_char"),
+            sprite_set: SpriteSet::get(sprite_library, "test_char"),
             transform: Transform::from_translation(Vec3::X * 2.0),
         },
         RandomInput::default(),

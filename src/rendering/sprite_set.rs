@@ -1,67 +1,67 @@
 use bevy::prelude::*;
 use std::collections::HashMap;
+use crate::rendering::sprite_render::load_sprite;
 
 /// A library containing all loaded sprite sets. Each set is keyed by a unique
 /// name so different entities can refer to the same shared data by name.
-#[derive(Resource, Default)]
+#[derive(Resource)]
 pub struct SpriteLibrary {
     /// Mapping from sprite-set name -> SpriteSet
     pub sets: HashMap<String, SpriteSet>,
 }
 
-/// A reusable collection of texture atlases for a character or object.
-///
-/// Internally this stores a map from a string key (for example
-/// "north_idle" or "south_walk") to a `Handle<TextureAtlas>`. Handles are
-/// cheap to clone so `SpriteSet` can be shared a1cross many entities. The
-/// library owns the map and systems create components that reference the
-/// handles they need.
-#[derive(Component)]
-pub struct SpriteSet {
-    /// Human-friendly name for this set (used as the key in `SpriteLibrary`).
-    pub name: String,
-
-    /// Mapping from a small key (direction+state) to a TextureAtlas handle.
-    /// Use a compact textual key to avoid tight coupling with enums in other
-    /// modules; callers can use `format!("{}_{}", dir, state)` or similar.
-    pub atlases: HashMap<String, Handle<TextureAtlasLayout>>,
-
-    /// Optional fallback atlas to use when a specific key is missing.
-    pub default: Option<Handle<TextureAtlasLayout>>,
+impl Default for SpriteLibrary {
+    fn default() -> Self {
+        let mut sets = HashMap::new();
+        let sprite_set = SpriteSet::create("test_char", load_sprite("test_char"));
+        sets.insert("test_char".to_string(), sprite_set);
+        Self {
+            sets: sets
+        }
+    }
 }
 
-impl SpriteSet {
-    /// Create a new, empty sprite set with the given name.
-    pub fn new(name: impl Into<String>) -> Self {
-        Self {
-            name: name.into(),
-            atlases: HashMap::new(),
-            default: None,
+impl SpriteLibrary {
+    pub fn get(&mut self, name: &str) -> SpriteSet {
+        // if we have the sprite set in the library, return it
+        if let Some(sprite_set) = self.sets.get(name) {
+            return sprite_set.clone();
+        } else {
+            return self.add_sprite_set(name).clone();
         }
     }
 
-    /// Insert an atlas handle for `key`. `key` should be a small string like
-    /// "north_idle". Handles are cloned into the set.
-    pub fn insert(&mut self, key: impl Into<String>, handle: Handle<TextureAtlasLayout>) {
-        self.atlases.insert(key.into(), handle);
+    pub fn add_sprite_set(&mut self, name: &str) -> SpriteSet {
+        // create a new sprite set and add it to the library
+        let sprite_set = SpriteSet::create(name, load_sprite(name));
+        self.sets.insert(name.to_string(), sprite_set);
+        if let Some(sprite_set) = self.sets.get(name) {
+            return sprite_set.clone();
+        }
+        panic!("Failed to add sprite set");
+    }
+}
+
+#[derive(Component, Clone)]
+pub struct SpriteSet {
+    pub name: String,
+    pub atlases: HashMap<String, Sprite>,
+}
+
+impl SpriteSet {
+    pub fn default(sprite_library: ResMut<SpriteLibrary>) -> SpriteSet {
+        let default_set = "test_char";
+        return Self::get(sprite_library, default_set);
     }
 
-    /// Set the default atlas used as a fallback when a key is missing.
-    pub fn set_default(&mut self, handle: Handle<TextureAtlasLayout>) {
-        self.default = Some(handle);
+    pub fn get(mut sprite_library: ResMut<SpriteLibrary>, name: &str) -> SpriteSet {
+        return sprite_library.get(name);
     }
 
-    /// Get a handle for `key`. Returns the specific atlas if present, or the
-    /// fallback default atlas if set, otherwise `None`.
-    pub fn get(&self, key: &str) -> Option<Handle<TextureAtlasLayout>> {
-        self.atlases
-            .get(key)
-            .cloned()
-            .or_else(|| self.default.clone())
-    }
-
-    /// Returns true when this set contains a handle for `key`.
-    pub fn contains_key(&self, key: &str) -> bool {
-        self.atlases.contains_key(key)
+    pub fn create(name: &str, spr: HashMap<String, Sprite>) -> Self {
+        SpriteSet {
+            name: name.to_string(),
+            atlases: spr,
+        }
     }
 }

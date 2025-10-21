@@ -5,10 +5,3 @@ pub enum CharacterState {
     Still,
     Moving,
 }
-
-impl CharacterState {
-    pub fn all() -> &'static [CharacterState] {
-        use CharacterState::*;
-        &[Still, Moving]
-    }
-}

@@ -1,6 +1,7 @@
 use bevy::prelude::*;
+use enum_iterator::Sequence;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component, Sequence)]
 pub enum Direction8 {
     North,
     Northeast,
@@ -10,15 +11,5 @@ pub enum Direction8 {
     Southwest,
     West,
     Northwest,
-}
-
-impl Direction8 {
-    pub fn all() -> &'static [Direction8] {
-        use Direction8::*;
-        &[
-            North, Northeast, East, Southeast,
-            South, Southwest, West, Northwest,
-        ]
-    }
 }
 

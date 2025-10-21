@@ -1,9 +1,28 @@
 use crate::direction::Direction8;
 use crate::game::character_state::CharacterState;
 use crate::game::player_input::PlayerControl;
+use crate::rendering::sprite_set::{SpriteLibrary, SpriteSet};
 use crate::rendering::sprite_state::SpriteState;
 use bevy::prelude::*;
+use std::collections::HashMap;
 use std::path::Path;
+use enum_iterator::all;
+
+pub fn setup_camera(mut commands: Commands) {
+    commands.spawn(Camera2d::default());
+}
+pub fn render_sprites(
+    windows: Query<&Window>,
+    sprite_library: Res<SpriteLibrary>
+) {
+
+}
+
+pub fn load_sprite(name: &str) -> HashMap<String, Sprite> {
+   // TODO
+   // Load the sprites for the given sprite set name.
+    HashMap::new()
+}
 
 #[derive(Component, Clone)]
 pub struct AnimationConfig {
@@ -119,7 +138,7 @@ pub fn update_visibility(
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2d::default());
 
-    for direction in Direction8::all() {
+    for direction in all::<Direction8>() {
         for state in SpriteState::all() {
             let base = format!("textures/test_char/{:?}_{:?}", direction, state).to_lowercase();
 
@@ -132,7 +151,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             commands.spawn(ImageAtlasBundle {
                 image_handle,
                 path: filename.clone(),
-                direction: *direction,
+                direction: direction,
                 state: *state,
             });
 
