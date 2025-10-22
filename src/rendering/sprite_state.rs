@@ -7,6 +7,7 @@ use crate::direction::Direction8;
 pub struct AnimationIndices {
     pub first: usize,
     pub last: usize,
+    pub current: usize,
 }
 
 #[derive(Component, Deref, DerefMut, Default)]
@@ -70,6 +71,7 @@ impl SpriteBundle {
             indices: AnimationIndices {
                 first: 0,
                 last: (grid.sprites[0] * grid.sprites[1]) as usize - 1,
+                current: 0,
             },
             visibility: Visibility::Hidden,
             transform: Transform::default(),
