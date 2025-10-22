@@ -20,7 +20,7 @@ impl Default for SpriteLibrary {
 }
 
 impl SpriteLibrary {
-    pub fn get(&mut self, name: &str) -> SpriteSet {
+    pub fn get(&self, name: &str) -> SpriteSet {
         // if we have the sprite set in the library, return it
         if let Some(sprite_set) = self.sets.get(name) {
             return sprite_set.clone();
@@ -33,17 +33,18 @@ impl SpriteLibrary {
     pub fn add_sprite_set(
         &mut self,
         name: &str,
+        mut commands: Commands,
         asset_server: Res<AssetServer>,
-        assets: Res<Assets<Image>>,
         texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
     ) -> SpriteSet {
         // create a new sprite set and add it to the library
         let sprite_set = SpriteSet::create(
             name,
-            load_sprite(name, asset_server, assets, texture_atlas_layouts),
+            load_sprite(name, asset_server, texture_atlas_layouts),
         );
         self.sets.insert(name.to_string(), sprite_set);
         if let Some(sprite_set) = self.sets.get(name) {
+            // check how many sprites were loaded
             return sprite_set.clone();
         }
         panic!("Failed to add sprite set");
@@ -51,16 +52,15 @@ impl SpriteLibrary {
 }
 
 pub fn load_sprites(
+    mut commands: Commands,
     mut sprite_library: ResMut<SpriteLibrary>,
     asset_server: Res<AssetServer>,
-    assets: Res<Assets<Image>>,
     texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    println!("Loading sprites...");
     sprite_library.add_sprite_set(
         "test_char",
+        commands,
         asset_server,
-        assets,
         texture_atlas_layouts,
     );
 }
@@ -72,9 +72,10 @@ pub struct SpriteSet {
 }
 
 impl SpriteSet {
-    pub fn default(sprite_library: ResMut<SpriteLibrary>) -> SpriteSet {
+    pub fn default(sprite_library: Res<SpriteLibrary>) -> SpriteSet {
         let default_set = "test_char";
-        return Self::get(sprite_library, default_set);
+        let sprite_set = sprite_library.get(default_set);
+        return sprite_set;
     }
 
     pub fn get(mut sprite_library: ResMut<SpriteLibrary>, name: &str) -> SpriteSet {

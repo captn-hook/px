@@ -3,7 +3,6 @@ mod direction;
 mod spawn;
 mod rendering;
 mod game;
-mod load_sync;
 
 use rendering::sprite_set::{SpriteLibrary, load_sprites};
 use rendering::sprite_render::{setup_camera, render_sprites};

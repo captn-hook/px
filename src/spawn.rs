@@ -15,7 +15,7 @@ pub struct CharacterBundle {
     pub transform: Transform,
 }
 
-pub fn spawn_player(mut commands: Commands, sprite_library: ResMut<SpriteLibrary>) {
+pub fn spawn_player(mut commands: Commands, sprite_library: Res<SpriteLibrary>) {
     commands.spawn((
         CharacterBundle {
             direction: Direction8::South,
@@ -28,7 +28,7 @@ pub fn spawn_player(mut commands: Commands, sprite_library: ResMut<SpriteLibrary
     ));
 }
 
-pub fn spawn_character(mut commands: Commands, sprite_library: ResMut<SpriteLibrary>) {
+pub fn spawn_character(mut commands: Commands, sprite_library: Res<SpriteLibrary>) {
     commands.spawn((
         CharacterBundle {
             direction: Direction8::South,
