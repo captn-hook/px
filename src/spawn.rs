@@ -19,12 +19,16 @@ pub struct AnimationTimer(pub Timer);
 #[derive(Bundle)]
 pub struct CharacterBundle {
     pub direction: Direction8,
+    pub transform: Transform,
     pub character_state: CharacterState,
+    pub sprite_state: SpriteState,
+}
+
+#[derive(Bundle)]
+pub struct CharacterSpriteBundle {
     pub animation_timer: AnimationTimer,
     pub indices: AnimationIndices,
-    pub sprite_state: SpriteState,
     pub sprite: Sprite,
-    pub transform: Transform,
 }
 
 pub fn spawn_player(
@@ -39,26 +43,34 @@ pub fn spawn_player(
         let layout =
             TextureAtlasLayout::from_grid(grid.size, grid.sprites[0], grid.sprites[1], None, None);
         let texture_atlas_layout = texture_atlas_layouts.add(layout);
-        let animation_indices = AnimationIndices { first: 0, last: (grid.sprites[0] * grid.sprites[1]) as usize - 1 };
+        let animation_indices = AnimationIndices {
+            first: 0,
+            last: (grid.sprites[0] * grid.sprites[1]) as usize - 1,
+        };
 
-        commands.spawn((
-            CharacterBundle {
-                direction: Direction8::South,
-                character_state: CharacterState::Still,
-                animation_timer: AnimationTimer(Timer::from_seconds(0.2, TimerMode::Repeating)),
-                indices: AnimationIndices { first: 0, last: 0 },
-                sprite_state: SpriteState::Still,
-                sprite: Sprite::from_atlas_image(
-                    texture,
-                    TextureAtlas {
-                        layout: texture_atlas_layout,
-                        index: animation_indices.first,
-                    },
-                ),
-                transform: Transform::from_scale(Vec3::splat(3.0)),
-            },
-            PlayerControl::default(),
-        ));
+        let char = commands
+            .spawn((
+                CharacterBundle {
+                    direction: Direction8::South,
+                    character_state: CharacterState::Still,
+                    sprite_state: SpriteState::Still,
+                    transform: Transform::from_scale(Vec3::splat(3.0)),
+                },
+                PlayerControl::default(),
+            ))
+            .with_children(|parent| {
+                parent.spawn(CharacterSpriteBundle {
+                    animation_timer: AnimationTimer(Timer::from_seconds(0.2, TimerMode::Repeating)),
+                    indices: AnimationIndices { first: 0, last: 0 },
+                    sprite: Sprite::from_atlas_image(
+                        texture,
+                        TextureAtlas {
+                            layout: texture_atlas_layout,
+                            index: animation_indices.first,
+                        },
+                    ),
+                });
+            });
     } else {
         panic!("Failed to parse grid from filename: {}", filename);
     }
