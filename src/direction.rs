@@ -26,4 +26,18 @@ impl Direction8 {
             Direction8::Northwest => "northwest",
         }
     }
+
+    pub fn from_str(s: &str) -> Option<Direction8> {
+        match s {
+            "north" => Some(Direction8::North),
+            "northeast" => Some(Direction8::Northeast),
+            "east" => Some(Direction8::East),
+            "southeast" => Some(Direction8::Southeast),
+            "south" => Some(Direction8::South),
+            "southwest" => Some(Direction8::Southwest),
+            "west" => Some(Direction8::West),
+            "northwest" => Some(Direction8::Northwest),
+            _ => None,
+        }
+    }
 }

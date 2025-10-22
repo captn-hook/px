@@ -26,7 +26,7 @@ pub fn update_player_input(
     windows: Query<&Window>,
     keyboard: Res<ButtonInput<KeyCode>>,
     mouse: Res<ButtonInput<MouseButton>>,
-    mut query: Query<&mut PlayerControl>,
+    mut query: Query<(&mut PlayerControl, &mut CharacterInput)>,
 ) {
     use KeyCode::*;
 
@@ -50,8 +50,9 @@ pub fn update_player_input(
         }
     }
 
-    for mut control in query.iter_mut() {
+    for (mut control, mut character_input) in query.iter_mut() {
         control.player_input = input.clone();
+        *character_input = input.input.clone();
     }
 }
 

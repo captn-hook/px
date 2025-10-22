@@ -1,6 +1,23 @@
+use bevy::prelude::*;
 use crate::direction::Direction8;
 use crate::game::character_state::CharacterState;
+use crate::game::character_input::CharacterInput;
 
+pub fn update_characters(
+    mut query: Query<(&mut Direction8, &mut CharacterState, &CharacterInput)>,
+) {
+    // get player and npc inputs here if needed
+    for (mut direction, mut state, input) in query.iter_mut() {
+        let (new_direction, new_state) = directional_input(input.as_array()[0..4].try_into().unwrap());
+
+        if let Some(dir) = new_direction {
+            *direction = dir;
+        }
+        *state = new_state;
+    }
+}
+
+    
 /// Converts keys to dpad style movement and state
 pub fn directional_input(input: [bool; 4]) -> (Option<Direction8>, CharacterState) {
     let up = input[0];

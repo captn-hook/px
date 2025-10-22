@@ -1,9 +1,6 @@
 use bevy::prelude::*;
-use crate::game::character_state::CharacterState;
-use crate::direction::Direction8;
-use crate::game::input::directional_input;
 
-#[derive(Clone)]
+#[derive(Component, Clone)]
 pub struct CharacterInput {
     pub up: bool,
     pub down: bool,
@@ -65,11 +62,11 @@ impl Default for RandomInput {
 
 // update random input system
 pub fn update_random_input(
-    mut query: Query<(&mut Direction8, &mut CharacterState, &mut RandomInput)>
+    mut query: Query<(&mut RandomInput, &mut CharacterInput)>,
 ) {
-    let chance = 0.01; // chance per update to toggle an inputs state
+    let chance = 0.004; // chance per update to toggle an inputs state
 
-    for (mut direction, mut state, mut random_input) in query.iter_mut() {
+    for (mut random_input, mut character_input) in query.iter_mut() {
         
         let mut input_array = random_input.input.as_array();
         
@@ -81,16 +78,6 @@ pub fn update_random_input(
     
         random_input.input = CharacterInput::from_array(input_array);
 
-        let (new_direction, new_state) = directional_input([
-            random_input.input.up,
-            random_input.input.down,
-            random_input.input.left,
-            random_input.input.right,
-        ]);
-
-        if new_direction.is_some() {
-            *direction = new_direction.unwrap();
-        }
-        *state = new_state;        
+        *character_input = random_input.input.clone();     
     }
 }

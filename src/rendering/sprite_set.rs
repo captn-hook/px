@@ -1,94 +1,89 @@
-use crate::rendering::sprite_render::load_spriteset;
+use std::path::Path;
 use bevy::prelude::*;
-use std::collections::HashMap;
-
 use crate::rendering::sprite_state::SpriteState;
 use crate::direction::Direction8;
-/// A library containing all loaded sprite sets. Each set is keyed by a unique
-/// name so different entities can refer to the same shared data by name.
-#[derive(Resource)]
-pub struct SpriteLibrary {
-    /// Mapping from sprite-set name -> SpriteSet
-    pub sets: HashMap<String, SpriteSet>,
+use enum_iterator::all;
+
+
+#[derive(Debug)]
+pub struct Grid {
+    pub sprites: UVec2,
+    pub size: UVec2,
+    pub direction: Direction8,
+    pub state: SpriteState,
 }
 
-impl Default for SpriteLibrary {
-    fn default() -> Self {
-        Self {
-            sets: HashMap::new(),
-        }
-    }
-}
+/// Gets all available textures for a sprite name
+pub fn get_textures(name: &str) -> Vec<String> {
+    let mut textures = Vec::new();
 
-impl SpriteLibrary {
-    pub fn get(&self, name: &str) -> SpriteSet {
-        // if we have the sprite set in the library, return it
-        if let Some(sprite_set) = self.sets.get(name) {
-            return sprite_set.clone();
-        } else {
-            print!("Sprite set '{}' not found in library", name);
-            return SpriteSet::create(HashMap::new());
+    for direction in all::<Direction8>() {
+        for state in all::<SpriteState>() {
+            let base = format!("{}_{}", direction.as_str(), state.as_str());
+            if let Some(texture) = find_existing_texture(name, &base) {
+                textures.push(texture);
+            }
         }
     }
 
-    pub fn add_sprite_set(
-        &mut self,
-        name: &str,
-        asset_server: Res<AssetServer>,
-        texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
-    ) -> SpriteSet {
-        // create a new sprite set and add it to the library
-        let sprite_set = SpriteSet::create(
-            load_spriteset(name, asset_server, texture_atlas_layouts),
-        );
-        self.sets.insert(name.to_string(), sprite_set);
-        if let Some(sprite_set) = self.sets.get(name) {
-            // check how many sprites were loaded
-            return sprite_set.clone();
-        }
-        panic!("Failed to add sprite set");
-    }
+    textures
 }
 
-pub fn load_sprites(
-    mut sprite_library: ResMut<SpriteLibrary>,
-    asset_server: Res<AssetServer>,
-    texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
-) {
-    sprite_library.add_sprite_set(
-        "test_char",
-        asset_server,
-        texture_atlas_layouts,
-    );
-}
+/// Checks if "base_NxM.png" exists.
+pub fn find_existing_texture(set: &str, base: &str) -> Option<String> {
+    let texture_dir = Path::new("assets");
 
-#[derive(Clone)]
-pub struct SpriteAndIndices {
-    pub sprite: Sprite,
-    pub first_index: usize,
-    pub last_index: usize,
-}
-
-#[derive(Component, Clone)]
-pub struct SpriteSet {
-    pub atlases: HashMap<String, SpriteAndIndices>,
-}
-
-impl SpriteSet {
-    pub fn default(sprite_library: Res<SpriteLibrary>) -> SpriteSet {
-        let default_set = "test_char";
-        let sprite_set = sprite_library.get(default_set);
-        return sprite_set;
-    }
-
-    pub fn create(spr: HashMap<String, SpriteAndIndices>) -> Self {
-        SpriteSet {
-            atlases: spr,
+    // check for any "_NxM.png"
+    if let Ok(entries) = std::fs::read_dir(texture_dir.join(format!("textures/{}", set))) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                if name.starts_with(&base) && name.ends_with(".png") {
+                    return Some(format!("textures/{}/{}", set, name));
+                }
+            }
         }
     }
+    return None;
+}
 
-    pub fn get_sprite(&mut self, direction: Direction8, state: SpriteState) -> Option<&mut SpriteAndIndices> {
-        let dir_state = format!("{}_{}", direction.as_str(), state.as_str());
-        return self.atlases.get_mut(&dir_state);
+pub fn parse_grid_from_filename(filename: &str) -> Option<Grid> {
+    // Files are named as "base_AxB_CxD.png"
+    // AxB is the number of sprites in the sheet, as in there are A columns and B rows of frames.
+    // CxD is the size of each sprite in the sheet, as in each sprite is C pixels wide and D pixels tall.
+
+    let stem = Path::new(filename).file_stem()?.to_str()?;
+
+    // Split into parts using '_'
+    let parts: Vec<&str> = stem.split('_').collect();
+
+    // Check if we have at least three parts (the grid and sprite size)
+    if parts.len() >= 3 {
+        let sprite_grid = parts[parts.len() - 2]; // 2x5 or similar
+        let sprite_size = parts[parts.len() - 1]; // 500x500 or similar
+        
+        if let Some(direction) = Direction8::from_str(parts[0]) {
+            if let Some(state) = SpriteState::from_str(parts[1]) {
+                // Parse the grid size (2x5 -> 2 columns, 5 rows)
+                if let Some((cols_str, rows_str)) = sprite_grid.split_once('x') {
+                    let cols = cols_str.parse().ok()?;
+                    let rows = rows_str.parse().ok()?;
+
+                    // Parse the sprite size (500x500 -> 500 width, 500 height)
+                    if let Some((width_str, height_str)) = sprite_size.split_once('x') {
+                        let width = width_str.parse().ok()?;
+                        let height = height_str.parse().ok()?;
+                        return Some(Grid {
+                            sprites: UVec2::new(cols, rows),
+                            size: UVec2::new(width, height),
+                            direction,
+                            state,
+                        });
+                    }
+                }
+            }
+        }
     }
+
+    None
 }
