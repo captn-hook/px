@@ -1,37 +1,96 @@
 use crate::direction::Direction8;
-use crate::rendering::sprite_set::{SpriteLibrary, SpriteSet};
+use crate::game::character_state::CharacterState;
+use crate::rendering::sprite_set::{SpriteAndIndices, SpriteSet};
 use crate::rendering::sprite_state::SpriteState;
 use bevy::prelude::*;
 use enum_iterator::all;
 use std::collections::HashMap;
 use std::path::Path;
 
+#[derive(Component, Deref, DerefMut)]
+pub struct AnimationTimer(pub Timer);
+
 pub fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera2d::default());
 }
 
 pub fn render_sprites(
-    // windows: Query<&Window>, // for sizing (unused for now)
-    mut sprite_library: ResMut<SpriteLibrary>,
-    mut query: Query<&mut SpriteSet>,
+    // Query for all entities with a SpriteSet, SpriteState, CharacterState, Direction8, and Transform
+    mut query: Query<(
+        &mut SpriteSet,
+        &mut SpriteState,
+        &mut AnimationTimer,
+        &CharacterState,
+        &Direction8,
+    )>,
     time: Res<Time>,
 ) {
-    for (set_name, set) in sprite_library.sets.iter_mut() {
-        // println!("Drawing sprite set: {}", set_name);
-        set.draw(time.delta());
-    }
+    // for (set_name, set) in sprite_library.sets.iter_mut() {
+    //     // println!("Drawing sprite set: {}", set_name);
+    //     set.draw(time.delta());
+    // }
 
-    for mut sprite_set in query.iter_mut() {
-        *sprite_set = sprite_library.get(&sprite_set.name);
+    for (
+        mut sprite_set,
+        mut sprite_state,
+        mut animation_timer,
+        character_state,
+        direction
+    ) in query.iter_mut()
+    {
+        // Update the sprite state based on the character state, using transitions from one character state to another
+        match character_state {
+            CharacterState::Still => {
+                match *sprite_state {
+                    SpriteState::Moving => {
+                        *sprite_state = SpriteState::Stopping;
+                    }
+                    SpriteState::Stopping => {
+                        *sprite_state = SpriteState::Still;
+                    }
+                    _ => {
+                        *sprite_state = SpriteState::Still;
+                    }
+                }
+            }
+            CharacterState::Moving => {
+                match *sprite_state {
+                    SpriteState::Still => {
+                        *sprite_state = SpriteState::Starting;
+                    }
+                    SpriteState::Starting => {
+                        *sprite_state = SpriteState::Moving;
+                    }
+                    _ => {
+                        *sprite_state = SpriteState::Moving;
+                    }
+                }
+            }   
+        }
+
+        animation_timer.tick(time.delta());
+
+        if animation_timer.just_finished() {
+            if let Some(sprite) = sprite_set.get_sprite(*direction, *sprite_state) {
+
+                if let Some(atlas) = &mut sprite.sprite.texture_atlas {
+                    atlas.index = if atlas.index == sprite.last_index {
+                        sprite.first_index
+                    } else {
+                        atlas.index + 1
+                    };
+                }
+            }
+        }
     }
 }
 
-pub fn load_sprite(
+pub fn load_spriteset(
     name: &str,
     asset_server: Res<AssetServer>,
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
-) -> HashMap<String, Sprite> {
-    let mut map: HashMap<String, Sprite> = HashMap::new();
+) -> HashMap<String, SpriteAndIndices> {
+    let mut map: HashMap<String, SpriteAndIndices> = HashMap::new();
     for direction in all::<Direction8>() {
         for state in all::<SpriteState>() {
             // get correct file name for this sprite
@@ -44,15 +103,11 @@ pub fn load_sprite(
 
                     let sprite = make_sprite(image_handle, &mut texture_atlas_layouts, grid);
 
-                    println!("Loaded sprite for {}: {}", dir_state, file);
-                    println!("Sprite info: image handle: {:?}, texture atlas: {:?}", sprite.image, sprite.texture_atlas);
-
                     map.insert(dir_state, sprite);
                 }
             }
         }
     }
-    println!("Loaded {} sprites for sprite set '{}'", map.len(), name);
 
     return map;
 }
@@ -61,7 +116,7 @@ pub fn make_sprite(
     image_handle: Handle<Image>,
     texture_atlas_layouts: &mut ResMut<Assets<TextureAtlasLayout>>,
     grid: Grid,
-) -> Sprite {
+) -> SpriteAndIndices {
     let layout =
         TextureAtlasLayout::from_grid(grid.size, grid.sprites[0], grid.sprites[1], None, None);
     let layout_handle = texture_atlas_layouts.add(layout);
@@ -73,7 +128,11 @@ pub fn make_sprite(
         }),
         ..default()
     };
-    return sprite;
+    return SpriteAndIndices {
+        sprite,
+        first_index: 0,
+        last_index: grid.sprites[1] as usize,
+    };
 }
 
 /// Checks if "base_NxM.png" exists.

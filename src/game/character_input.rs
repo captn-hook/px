@@ -3,6 +3,7 @@ use crate::game::character_state::CharacterState;
 use crate::direction::Direction8;
 use crate::game::input::directional_input;
 
+#[derive(Clone)]
 pub struct CharacterInput {
     pub up: bool,
     pub down: bool,

@@ -1,8 +1,9 @@
-use crate::rendering::sprite_render::load_sprite;
+use crate::rendering::sprite_render::load_spriteset;
 use bevy::prelude::*;
-use core::time::Duration;
 use std::collections::HashMap;
 
+use crate::rendering::sprite_state::SpriteState;
+use crate::direction::Direction8;
 /// A library containing all loaded sprite sets. Each set is keyed by a unique
 /// name so different entities can refer to the same shared data by name.
 #[derive(Resource)]
@@ -26,21 +27,19 @@ impl SpriteLibrary {
             return sprite_set.clone();
         } else {
             print!("Sprite set '{}' not found in library", name);
-            return SpriteSet::create(name, HashMap::new());
+            return SpriteSet::create(HashMap::new());
         }
     }
 
     pub fn add_sprite_set(
         &mut self,
         name: &str,
-        mut commands: Commands,
         asset_server: Res<AssetServer>,
         texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
     ) -> SpriteSet {
         // create a new sprite set and add it to the library
         let sprite_set = SpriteSet::create(
-            name,
-            load_sprite(name, asset_server, texture_atlas_layouts),
+            load_spriteset(name, asset_server, texture_atlas_layouts),
         );
         self.sets.insert(name.to_string(), sprite_set);
         if let Some(sprite_set) = self.sets.get(name) {
@@ -52,23 +51,27 @@ impl SpriteLibrary {
 }
 
 pub fn load_sprites(
-    mut commands: Commands,
     mut sprite_library: ResMut<SpriteLibrary>,
     asset_server: Res<AssetServer>,
     texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     sprite_library.add_sprite_set(
         "test_char",
-        commands,
         asset_server,
         texture_atlas_layouts,
     );
 }
 
+#[derive(Clone)]
+pub struct SpriteAndIndices {
+    pub sprite: Sprite,
+    pub first_index: usize,
+    pub last_index: usize,
+}
+
 #[derive(Component, Clone)]
 pub struct SpriteSet {
-    pub name: String,
-    pub atlases: HashMap<String, Sprite>,
+    pub atlases: HashMap<String, SpriteAndIndices>,
 }
 
 impl SpriteSet {
@@ -78,20 +81,14 @@ impl SpriteSet {
         return sprite_set;
     }
 
-    pub fn get(mut sprite_library: ResMut<SpriteLibrary>, name: &str) -> SpriteSet {
-        return sprite_library.get(name);
-    }
-
-    pub fn create(name: &str, spr: HashMap<String, Sprite>) -> Self {
+    pub fn create(spr: HashMap<String, SpriteAndIndices>) -> Self {
         SpriteSet {
-            name: name.to_string(),
             atlases: spr,
         }
     }
 
-    pub fn draw(&mut self, delta: Duration) {
-        // Update and draw the sprite set using the provided delta time
-        // This is a placeholder for the actual drawing logic
-        // println!("Drawing sprite set: {} with delta: {:?}", self.name, delta);
+    pub fn get_sprite(&mut self, direction: Direction8, state: SpriteState) -> Option<&mut SpriteAndIndices> {
+        let dir_state = format!("{}_{}", direction.as_str(), state.as_str());
+        return self.atlases.get_mut(&dir_state);
     }
 }

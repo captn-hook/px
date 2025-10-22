@@ -1,10 +1,7 @@
 use bevy::prelude::*;
 use crate::game::character_input::CharacterInput;
-use crate::game::character_state::CharacterState;
-use crate::game::input::directional_input;
-use crate::direction::Direction8;
 
-#[derive(Resource)]
+#[derive(Resource, Clone)]
 pub struct PlayerInput {
     pub input: CharacterInput,
     pub click_l: bool,
@@ -29,6 +26,7 @@ pub fn update_player_input(
     windows: Query<&Window>,
     keyboard: Res<ButtonInput<KeyCode>>,
     mouse: Res<ButtonInput<MouseButton>>,
+    mut query: Query<&mut PlayerControl>,
 ) {
     use KeyCode::*;
 
@@ -50,6 +48,10 @@ pub fn update_player_input(
         if let Some(pos) = window.cursor_position() {
             input.pointer = pos;
         }
+    }
+
+    for mut control in query.iter_mut() {
+        control.player_input = input.clone();
     }
 }
 
