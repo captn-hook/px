@@ -1,4 +1,5 @@
 use crate::direction::Direction8;
+use crate::spawn::AnimationTimer;
 use crate::game::character_state::CharacterState;
 use crate::rendering::sprite_set::{SpriteAndIndices, SpriteSet};
 use crate::rendering::sprite_state::SpriteState;
@@ -7,8 +8,6 @@ use enum_iterator::all;
 use std::collections::HashMap;
 use std::path::Path;
 
-#[derive(Component, Deref, DerefMut)]
-pub struct AnimationTimer(pub Timer);
 
 pub fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera2d::default());
@@ -30,49 +29,39 @@ pub fn render_sprites(
     //     set.draw(time.delta());
     // }
 
-    for (
-        mut sprite_set,
-        mut sprite_state,
-        mut animation_timer,
-        character_state,
-        direction
-    ) in query.iter_mut()
+    for (mut sprite_set, mut sprite_state, mut animation_timer, character_state, direction) in
+        query.iter_mut()
     {
         // Update the sprite state based on the character state, using transitions from one character state to another
         match character_state {
-            CharacterState::Still => {
-                match *sprite_state {
-                    SpriteState::Moving => {
-                        *sprite_state = SpriteState::Stopping;
-                    }
-                    SpriteState::Stopping => {
-                        *sprite_state = SpriteState::Still;
-                    }
-                    _ => {
-                        *sprite_state = SpriteState::Still;
-                    }
+            CharacterState::Still => match *sprite_state {
+                SpriteState::Moving => {
+                    *sprite_state = SpriteState::Stopping;
                 }
-            }
-            CharacterState::Moving => {
-                match *sprite_state {
-                    SpriteState::Still => {
-                        *sprite_state = SpriteState::Starting;
-                    }
-                    SpriteState::Starting => {
-                        *sprite_state = SpriteState::Moving;
-                    }
-                    _ => {
-                        *sprite_state = SpriteState::Moving;
-                    }
+                SpriteState::Stopping => {
+                    *sprite_state = SpriteState::Still;
                 }
-            }   
+                _ => {
+                    *sprite_state = SpriteState::Still;
+                }
+            },
+            CharacterState::Moving => match *sprite_state {
+                SpriteState::Still => {
+                    *sprite_state = SpriteState::Starting;
+                }
+                SpriteState::Starting => {
+                    *sprite_state = SpriteState::Moving;
+                }
+                _ => {
+                    *sprite_state = SpriteState::Moving;
+                }
+            },
         }
 
         animation_timer.tick(time.delta());
 
         if animation_timer.just_finished() {
             if let Some(sprite) = sprite_set.get_sprite(*direction, *sprite_state) {
-
                 if let Some(atlas) = &mut sprite.sprite.texture_atlas {
                     atlas.index = if atlas.index == sprite.last_index {
                         sprite.first_index
@@ -120,17 +109,25 @@ pub fn make_sprite(
     let layout =
         TextureAtlasLayout::from_grid(grid.size, grid.sprites[0], grid.sprites[1], None, None);
     let layout_handle = texture_atlas_layouts.add(layout);
-    let sprite = Sprite {
-        image: image_handle,
-        texture_atlas: Some(TextureAtlas {
+    // let sprite = Sprite {
+    //     image: image_handle,
+    //     texture_atlas: Some(TextureAtlas {
+    //         layout: layout_handle,
+    //         index: 0,
+    //     }),
+    //     ..default()
+    // };
+    let sprite = Sprite::from_atlas_image(
+        image_handle,
+        TextureAtlas {
             layout: layout_handle,
-            index: 0,
-        }),
-        ..default()
-    };
+            index: grid.sprites[0] as usize,
+        },
+    );
+
     return SpriteAndIndices {
         sprite,
-        first_index: 0,
+        first_index: grid.sprites[0] as usize,
         last_index: grid.sprites[1] as usize,
     };
 }
@@ -155,11 +152,11 @@ fn find_existing_texture(set: &str, base: &str) -> Option<String> {
 
 #[derive(Debug)]
 pub struct Grid {
-    sprites: UVec2,
-    size: UVec2,
+    pub sprites: UVec2,
+    pub size: UVec2,
 }
 
-fn parse_grid_from_filename(filename: &str) -> Option<Grid> {
+pub fn parse_grid_from_filename(filename: &str) -> Option<Grid> {
     // Files are named as "base_AxB_CxD.png"
     // AxB is the number of sprites in the sheet, as in there are A columns and B rows of frames.
     // CxD is the size of each sprite in the sheet, as in each sprite is C pixels wide and D pixels tall.
