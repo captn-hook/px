@@ -8,3 +8,15 @@ pub enum SpriteState {
     Moving,
     Stopping,
 }
+
+// to string
+impl SpriteState {
+    pub fn as_str(&self) -> &str {
+        match self {
+            SpriteState::Still => "still",
+            SpriteState::Starting => "starting",
+            SpriteState::Moving => "moving",
+            SpriteState::Stopping => "stopping",
+        }
+    }
+}

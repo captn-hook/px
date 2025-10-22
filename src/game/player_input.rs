@@ -65,27 +65,3 @@ impl Default for PlayerControl {
         }
     }
 }
-
-// Player control system just reads the PlayerInput resource and applies it to the entity
-// for entity movement, there must be a Transform, Direction8, and CharacterState components.
-// transform not implemented yet
-pub fn player_control_system(
-    mut query: Query<(&mut Direction8, &mut CharacterState, &PlayerControl)>) {
-    for (mut direction, mut state, player_control) in query.iter_mut() {
-        let input = &player_control.player_input.input;
-        let (new_direction, new_state) = directional_input([
-            input.up,
-            input.down,
-            input.left,
-            input.right,
-        ]);
-
-        if new_direction.is_some() {
-            *direction = new_direction.unwrap();
-        }
-        *state = new_state;
-
-        // Apply the input to the transform or other components as needed
-        // Not implemented yet, we dont want to modify transform directly without some checks
-    }
-}

@@ -1,6 +1,7 @@
-use bevy::prelude::*;
-use std::collections::HashMap;
 use crate::rendering::sprite_render::load_sprite;
+use bevy::prelude::*;
+use core::time::Duration;
+use std::collections::HashMap;
 
 /// A library containing all loaded sprite sets. Each set is keyed by a unique
 /// name so different entities can refer to the same shared data by name.
@@ -12,11 +13,8 @@ pub struct SpriteLibrary {
 
 impl Default for SpriteLibrary {
     fn default() -> Self {
-        let mut sets = HashMap::new();
-        let sprite_set = SpriteSet::create("test_char", load_sprite("test_char"));
-        sets.insert("test_char".to_string(), sprite_set);
         Self {
-            sets: sets
+            sets: HashMap::new(),
         }
     }
 }
@@ -27,19 +25,44 @@ impl SpriteLibrary {
         if let Some(sprite_set) = self.sets.get(name) {
             return sprite_set.clone();
         } else {
-            return self.add_sprite_set(name).clone();
+            print!("Sprite set '{}' not found in library", name);
+            return SpriteSet::create(name, HashMap::new());
         }
     }
 
-    pub fn add_sprite_set(&mut self, name: &str) -> SpriteSet {
+    pub fn add_sprite_set(
+        &mut self,
+        name: &str,
+        asset_server: Res<AssetServer>,
+        assets: Res<Assets<Image>>,
+        texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+    ) -> SpriteSet {
         // create a new sprite set and add it to the library
-        let sprite_set = SpriteSet::create(name, load_sprite(name));
+        let sprite_set = SpriteSet::create(
+            name,
+            load_sprite(name, asset_server, assets, texture_atlas_layouts),
+        );
         self.sets.insert(name.to_string(), sprite_set);
         if let Some(sprite_set) = self.sets.get(name) {
             return sprite_set.clone();
         }
         panic!("Failed to add sprite set");
     }
+}
+
+pub fn load_sprites(
+    mut sprite_library: ResMut<SpriteLibrary>,
+    asset_server: Res<AssetServer>,
+    assets: Res<Assets<Image>>,
+    texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+) {
+    println!("Loading sprites...");
+    sprite_library.add_sprite_set(
+        "test_char",
+        asset_server,
+        assets,
+        texture_atlas_layouts,
+    );
 }
 
 #[derive(Component, Clone)]
@@ -63,5 +86,11 @@ impl SpriteSet {
             name: name.to_string(),
             atlases: spr,
         }
+    }
+
+    pub fn draw(&mut self, delta: Duration) {
+        // Update and draw the sprite set using the provided delta time
+        // This is a placeholder for the actual drawing logic
+        // println!("Drawing sprite set: {} with delta: {:?}", self.name, delta);
     }
 }
