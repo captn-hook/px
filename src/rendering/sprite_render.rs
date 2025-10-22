@@ -15,11 +15,18 @@ pub fn update_character_sprites(
         &mut SpriteState,
         &mut Children,
     )>,
-    mut sprite_query: Query<(&SpriteState, &Direction8, &AnimationIndices, &mut Visibility), Without<CharacterState>>,
+    mut sprite_query: Query<
+        (
+            &SpriteState,
+            &Direction8,
+            &AnimationIndices,
+            &mut Visibility,
+        ),
+        Without<CharacterState>,
+    >,
 ) {
     // change this to track last state and direction to avoid unnecessary updates
     for (state, direction, mut sprite, children) in char_query.iter_mut() {
-        
         let mut can_change = false;
 
         // Update child sprite visibilities
@@ -27,20 +34,19 @@ pub fn update_character_sprites(
             let (child_sprite_state, child_direction, indices, mut visibility) =
                 sprite_query.get_mut(child).unwrap();
 
-            if *child_sprite_state == *sprite && *child_direction == *direction {
+            if *child_direction == *direction && *child_sprite_state == *sprite {
                 *visibility = Visibility::Visible;
-                
-                if state == &CharacterState::Still || indices.current == indices.last || indices.current == indices.first {
+
+                if indices.current == indices.last {
                     can_change = true;
                 }
-
             } else {
                 *visibility = Visibility::Hidden;
             }
         }
 
-                // Update sprite state based on character state and direction
-        if can_change {
+        // Update sprite state based on character state and direction
+        if can_change || *sprite == SpriteState::Still {
             match state {
                 CharacterState::Still => match *sprite {
                     SpriteState::Moving | SpriteState::Starting => {

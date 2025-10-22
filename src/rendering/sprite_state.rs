@@ -74,7 +74,7 @@ impl SpriteBundle {
                 current: 0,
             },
             visibility: Visibility::Hidden,
-            transform: Transform::default(),
+            transform: Transform::from_scale(Vec3::ONE / 2.0),
         };
     }
 }

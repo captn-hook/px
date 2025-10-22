@@ -4,16 +4,21 @@ use crate::game::character_state::CharacterState;
 use crate::game::character_input::CharacterInput;
 
 pub fn update_characters(
-    mut query: Query<(&mut Direction8, &mut CharacterState, &CharacterInput)>,
+    mut query: Query<(&mut Direction8, &mut CharacterState, &mut Transform, &CharacterInput)>,
 ) {
     // get player and npc inputs here if needed
-    for (mut direction, mut state, input) in query.iter_mut() {
+    for (mut direction, mut state, mut transform, input) in query.iter_mut() {
         let (new_direction, new_state) = directional_input(input.as_array()[0..4].try_into().unwrap());
 
         if let Some(dir) = new_direction {
             *direction = dir;
         }
         *state = new_state;
+
+        // Simple movement test
+        if *state == CharacterState::Moving {
+            transform.translation += direction.to_translation().extend(0.0) * 0.17;
+        }
     }
 }
 

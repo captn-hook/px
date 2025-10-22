@@ -40,4 +40,17 @@ impl Direction8 {
             _ => None,
         }
     }
+
+    pub fn to_translation(&self) -> Vec2 {
+        match self {
+            Direction8::North => Vec2::new(0.0, 1.0),
+            Direction8::Northeast => Vec2::new(1.0, 1.0).normalize(),
+            Direction8::East => Vec2::new(1.0, 0.0),
+            Direction8::Southeast => Vec2::new(1.0, -1.0).normalize(),
+            Direction8::South => Vec2::new(0.0, -1.0),
+            Direction8::Southwest => Vec2::new(-1.0, -1.0).normalize(),
+            Direction8::West => Vec2::new(-1.0, 0.0),
+            Direction8::Northwest => Vec2::new(-1.0, 1.0).normalize(),
+        }
+    }
 }

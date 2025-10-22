@@ -76,19 +76,16 @@ pub fn spawn_player(
             parent.spawn(child);
         });
     }
-
-    // translate the player to the left
-    commands.entity(parent).insert(Transform::from_translation(Vec3::new(-260.0, 0.0, 0.0)));
 }
 
 pub fn spawn_character(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+    commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
+    texture_atlas_layouts: &mut ResMut<Assets<TextureAtlasLayout>>,
+    transform: Transform,
 ) {
-
     let filenames = get_textures("test_char");
-    let children = make_children(filenames, &asset_server, &mut texture_atlas_layouts);
+    let children = make_children(filenames, &asset_server, texture_atlas_layouts);
 
     let parent = commands.spawn((
         CharacterBundle::default(),
@@ -101,6 +98,26 @@ pub fn spawn_character(
         });
     }
 
-    // translate the character to the right
-    commands.entity(parent).insert(Transform::from_translation(Vec3::new(260.0, 0.0, 0.0)));
+    commands.entity(parent).insert(transform);
+}
+
+pub fn spawn_characters(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+) {
+    let transforms = vec![
+        Transform::from_translation(Vec3::new(-300.0, 0.0, 0.0)),
+        Transform::from_translation(Vec3::new(300.0, 0.0, 0.0)),
+        Transform::from_translation(Vec3::new(0.0, -300.0, 0.0)),
+        Transform::from_translation(Vec3::new(0.0, 300.0, 0.0)),
+        Transform::from_translation(Vec3::new(300.0, 300.0, 0.0)),
+        Transform::from_translation(Vec3::new(-300.0, -300.0, 0.0)),
+        Transform::from_translation(Vec3::new(-300.0, 300.0, 0.0)),
+        Transform::from_translation(Vec3::new(300.0, -300.0, 0.0)),
+    ];
+
+    for transform in transforms {
+        spawn_character(&mut commands, &asset_server, &mut texture_atlas_layouts, transform);
+    }
 }
